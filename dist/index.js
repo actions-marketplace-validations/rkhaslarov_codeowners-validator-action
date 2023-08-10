@@ -38,18 +38,25 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(186));
-const wait_1 = __nccwpck_require__(817);
+const validator_1 = __importDefault(__nccwpck_require__(618));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const ms = core.getInput('milliseconds');
-            core.debug(`Waiting ${ms} milliseconds ...`); // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+            const codeOwnersFilePath = core.getInput('path');
+            const foldersToTrack = core
+                .getInput('folders')
+                .split('\n')
+                .map(s => s.replace(/^!\s+/, '!').trim())
+                .filter(x => x !== '');
             core.debug(new Date().toTimeString());
-            yield (0, wait_1.wait)(parseInt(ms, 10));
+            yield (0, validator_1.default)(codeOwnersFilePath, foldersToTrack);
             core.debug(new Date().toTimeString());
-            core.setOutput('time', new Date().toTimeString());
+            core.setOutput('Success', {});
         }
         catch (error) {
             if (error instanceof Error)
@@ -62,8 +69,8 @@ run();
 
 /***/ }),
 
-/***/ 817:
-/***/ (function(__unused_webpack_module, exports) {
+/***/ 618:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -76,19 +83,112 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __asyncValues = (this && this.__asyncValues) || function (o) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var m = o[Symbol.asyncIterator], i;
+    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.wait = void 0;
-function wait(milliseconds) {
+const fs_1 = __nccwpck_require__(147);
+function fillWithPath(structure, path) {
+    const [, ...arrayPath] = path.split('/');
+    return arrayPath.reduce((acc, folderName, idx) => {
+        if (!acc[folderName]) {
+            acc[folderName] = {};
+        }
+        if (idx === arrayPath.length - 1) {
+            acc[folderName].owned = true;
+        }
+        return acc[folderName];
+    }, structure);
+}
+function getOwnedFilePaths(codeOwnersFilePath) {
+    var _a, e_1, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(resolve => {
-            if (isNaN(milliseconds)) {
-                throw new Error('milliseconds not a number');
+        const ownersStructure = {};
+        const ownedFileEndings = [];
+        const file = yield fs_1.promises.open(codeOwnersFilePath);
+        const readLinesStream = file.readLines();
+        try {
+            for (var _d = true, readLinesStream_1 = __asyncValues(readLinesStream), readLinesStream_1_1; readLinesStream_1_1 = yield readLinesStream_1.next(), _a = readLinesStream_1_1.done, !_a; _d = true) {
+                _c = readLinesStream_1_1.value;
+                _d = false;
+                const line = _c;
+                if (!line.startsWith('#') && line.length) {
+                    const [path] = line.split(' ');
+                    if (path.includes('*')) {
+                        const fileEnding = path.split('*')[1];
+                        ownedFileEndings.push(fileEnding);
+                    }
+                    else if (path.includes('/')) {
+                        fillWithPath(ownersStructure, path);
+                    }
+                }
             }
-            setTimeout(() => resolve('done!'), milliseconds);
-        });
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (!_d && !_a && (_b = readLinesStream_1.return)) yield _b.call(readLinesStream_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        return {
+            ownedFileEndings,
+            ownersStructure
+        };
     });
 }
-exports.wait = wait;
+function deepScanDirectory(path) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const items = yield fs_1.promises.readdir(path, { withFileTypes: true });
+        const dirItems = items.filter(item => item.isDirectory());
+        const childItems = yield Promise.all(dirItems.map((dirItem) => __awaiter(this, void 0, void 0, function* () { return deepScanDirectory(`${path}/${dirItem.name}`); })));
+        return [
+            ...dirItems.map(dirItem => `${path}/${dirItem.name}`),
+            ...childItems
+        ].flat();
+    });
+}
+function scanExistingFiles(folders) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const dirItems = yield Promise.all(folders.map((path) => __awaiter(this, void 0, void 0, function* () { return deepScanDirectory(path); })));
+        return dirItems.flat();
+    });
+}
+function validateCodeOwners(codeOwnersFilePath, folders) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const [{ ownedFileEndings, ownersStructure }, filePaths] = yield Promise.all([
+            getOwnedFilePaths(codeOwnersFilePath),
+            scanExistingFiles(folders)
+        ]);
+        const unownedFiles = filePaths.filter(filePath => {
+            if (ownedFileEndings.some(fileEnding => fileEnding && filePath.endsWith(fileEnding))) {
+                return false;
+            }
+            const [, ...path] = filePath.split('/');
+            let currentFolder = ownersStructure;
+            for (let i = 0; i < path.length; i += 1) {
+                if (currentFolder.owned) {
+                    return false;
+                }
+                if (currentFolder[path[i]]) {
+                    currentFolder = currentFolder[path[i]];
+                }
+                else {
+                    return true;
+                }
+            }
+            return false;
+        });
+        if (unownedFiles.length) {
+            throw new Error(`The next folders do not have owners: ${unownedFiles.join('\n')}`);
+        }
+    });
+}
+exports["default"] = validateCodeOwners;
 
 
 /***/ }),
