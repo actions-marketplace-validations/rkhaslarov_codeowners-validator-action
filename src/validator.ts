@@ -1,9 +1,11 @@
 import {promises as fs} from 'fs'
 
-function fillWithPath(structure, path) {
+type Structure = Record<string, any>
+
+function fillWithPath(structure: Structure, path: string): Structure {
   const [, ...arrayPath] = path.split('/')
 
-  return arrayPath.reduce((acc, folderName, idx) => {
+  return arrayPath.reduce((acc: Structure, folderName, idx) => {
     if (!acc[folderName]) {
       acc[folderName] = {}
     }
@@ -16,7 +18,10 @@ function fillWithPath(structure, path) {
   }, structure)
 }
 
-async function getOwnedFilePaths(codeOwnersFilePath) {
+async function getOwnedFilePaths(codeOwnersFilePath: string): Promise<{
+  ownedFileEndings: string[]
+  ownersStructure: Structure
+}> {
   const ownersStructure = {}
   const ownedFileEndings = []
 
@@ -44,7 +49,7 @@ async function getOwnedFilePaths(codeOwnersFilePath) {
   }
 }
 
-async function deepScanDirectory(path): Promise<string[]> {
+async function deepScanDirectory(path: string): Promise<string[]> {
   const items = await fs.readdir(path, {withFileTypes: true})
 
   const dirItems = items.filter(item => item.isDirectory())
@@ -70,7 +75,7 @@ async function scanExistingFiles(folders: string[]): Promise<string[]> {
 async function validateCodeOwners(
   codeOwnersFilePath: string,
   folders: string[]
-) {
+): Promise<void> {
   const [{ownedFileEndings, ownersStructure}, filePaths] = await Promise.all([
     getOwnedFilePaths(codeOwnersFilePath),
     scanExistingFiles(folders)
