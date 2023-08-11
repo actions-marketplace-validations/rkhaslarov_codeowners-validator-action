@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import validateCodeOwners from './validator'
+import validateCodeOwners from './lib/validator'
 
 async function run(): Promise<void> {
   try {
