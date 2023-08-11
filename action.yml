@@ -11,5 +11,5 @@ inputs:
     description: 'Folders that should be tracked'
     default: ./.github/CODEOWNERS
 runs:
-  using: 'node16'
+  using: 'node18'
   main: 'dist/index.js'
