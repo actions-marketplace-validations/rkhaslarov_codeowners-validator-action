@@ -1,4 +1,7 @@
-import {promises as fs} from 'fs'
+import fs from 'fs'
+import readline from 'readline'
+
+const fsAsync = fs.promises
 
 type Structure = Record<string, any>
 
@@ -25,9 +28,11 @@ async function getOwnedFilePaths(codeOwnersFilePath: string): Promise<{
   const ownersStructure = {}
   const ownedFileEndings = []
 
-  const file = await fs.open(codeOwnersFilePath)
-
-  const readLinesStream = file.readLines()
+  const fileStream = fs.createReadStream(codeOwnersFilePath)
+  const readLinesStream = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity
+  })
 
   for await (const line of readLinesStream) {
     if (!line.startsWith('#') && line.length) {
@@ -50,7 +55,7 @@ async function getOwnedFilePaths(codeOwnersFilePath: string): Promise<{
 }
 
 async function deepScanDirectory(path: string): Promise<string[]> {
-  const items = await fs.readdir(path, {withFileTypes: true})
+  const items = await fsAsync.readdir(path, {withFileTypes: true})
 
   const dirItems = items.filter(item => item.isDirectory())
 
@@ -81,7 +86,7 @@ async function validateCodeOwners(
     scanExistingFiles(folders)
   ])
 
-  const unownedFiles = filePaths.filter(filePath => {
+  const unownedFiles = filePaths.filter((filePath: string) => {
     if (
       ownedFileEndings.some(
         fileEnding => fileEnding && filePath.endsWith(fileEnding)
