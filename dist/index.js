@@ -1,6 +1,158 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 265:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __asyncValues = (this && this.__asyncValues) || function (o) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var m = o[Symbol.asyncIterator], i;
+    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const fs = __importStar(__nccwpck_require__(147));
+const readline = __importStar(__nccwpck_require__(521));
+const fsAsync = fs.promises;
+function fillWithPath(structure, path) {
+    const [, ...arrayPath] = path.split('/');
+    return arrayPath.reduce((acc, folderName, idx) => {
+        if (!acc[folderName]) {
+            acc[folderName] = {};
+        }
+        if (idx === arrayPath.length - 1) {
+            acc[folderName].owned = true;
+        }
+        return acc[folderName];
+    }, structure);
+}
+function getOwnedFilePaths(codeOwnersFilePath) {
+    var _a, e_1, _b, _c;
+    return __awaiter(this, void 0, void 0, function* () {
+        const ownersStructure = {};
+        const ownedFileEndings = [];
+        const fileStream = fs.createReadStream(codeOwnersFilePath);
+        const readLinesStream = readline.createInterface({
+            input: fileStream,
+            crlfDelay: Infinity
+        });
+        try {
+            for (var _d = true, readLinesStream_1 = __asyncValues(readLinesStream), readLinesStream_1_1; readLinesStream_1_1 = yield readLinesStream_1.next(), _a = readLinesStream_1_1.done, !_a; _d = true) {
+                _c = readLinesStream_1_1.value;
+                _d = false;
+                const line = _c;
+                if (!line.startsWith('#') && line.length) {
+                    const [path] = line.split(' ');
+                    if (path.includes('*')) {
+                        const fileEnding = path.split('*')[1];
+                        ownedFileEndings.push(fileEnding);
+                    }
+                    else if (path.includes('/')) {
+                        fillWithPath(ownersStructure, path);
+                    }
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (!_d && !_a && (_b = readLinesStream_1.return)) yield _b.call(readLinesStream_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        return {
+            ownedFileEndings,
+            ownersStructure
+        };
+    });
+}
+function deepScanDirectory(path) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const items = yield fsAsync.readdir(path, { withFileTypes: true });
+        const dirItems = items.filter(item => item.isDirectory());
+        const childItems = yield Promise.all(dirItems.map((dirItem) => __awaiter(this, void 0, void 0, function* () { return deepScanDirectory(`${path}/${dirItem.name}`); })));
+        return [
+            ...dirItems.map(dirItem => `${path}/${dirItem.name}`),
+            ...childItems
+        ].flat();
+    });
+}
+function scanExistingFiles(folders) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const dirItems = yield Promise.all(folders.map((path) => __awaiter(this, void 0, void 0, function* () { return deepScanDirectory(path); })));
+        return dirItems.flat();
+    });
+}
+function validateCodeOwners(codeOwnersFilePath, folders) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const [{ ownedFileEndings, ownersStructure }, filePaths] = yield Promise.all([
+            getOwnedFilePaths(codeOwnersFilePath),
+            scanExistingFiles(folders)
+        ]);
+        const unownedFiles = filePaths.filter((filePath) => {
+            if (ownedFileEndings.some(fileEnding => fileEnding && filePath.endsWith(fileEnding))) {
+                return false;
+            }
+            const [, ...path] = filePath.split('/');
+            let currentFolder = ownersStructure;
+            for (let i = 0; i < path.length; i += 1) {
+                if (currentFolder.owned) {
+                    return false;
+                }
+                if (currentFolder[path[i]]) {
+                    currentFolder = currentFolder[path[i]];
+                }
+                else {
+                    return true;
+                }
+            }
+            return false;
+        });
+        if (unownedFiles.length) {
+            throw new Error(`The next folders do not have owners: ${unownedFiles.join('\n')}`);
+        }
+    });
+}
+exports["default"] = validateCodeOwners;
+
+
+/***/ }),
+
 /***/ 109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -38,18 +190,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(186));
-const wait_1 = __nccwpck_require__(817);
+const validator_1 = __importDefault(__nccwpck_require__(265));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const ms = core.getInput('milliseconds');
-            core.debug(`Waiting ${ms} milliseconds ...`); // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
-            core.debug(new Date().toTimeString());
-            yield (0, wait_1.wait)(parseInt(ms, 10));
-            core.debug(new Date().toTimeString());
-            core.setOutput('time', new Date().toTimeString());
+            const codeOwnersFilePath = core.getInput('path');
+            const foldersToTrack = core
+                .getInput('folders')
+                .split('\n')
+                .map(s => s.replace(/^!\s+/, '!').trim())
+                .filter(x => x !== '');
+            yield (0, validator_1.default)(codeOwnersFilePath, foldersToTrack);
         }
         catch (error) {
             if (error instanceof Error)
@@ -58,37 +214,6 @@ function run() {
     });
 }
 run();
-
-
-/***/ }),
-
-/***/ 817:
-/***/ (function(__unused_webpack_module, exports) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.wait = void 0;
-function wait(milliseconds) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise(resolve => {
-            if (isNaN(milliseconds)) {
-                throw new Error('milliseconds not a number');
-            }
-            setTimeout(() => resolve('done!'), milliseconds);
-        });
-    });
-}
-exports.wait = wait;
 
 
 /***/ }),
@@ -2849,6 +2974,14 @@ module.exports = require("os");
 
 "use strict";
 module.exports = require("path");
+
+/***/ }),
+
+/***/ 521:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("readline");
 
 /***/ }),
 

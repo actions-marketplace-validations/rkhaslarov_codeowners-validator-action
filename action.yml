@@ -1,11 +1,16 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Code Owners Validator'
+description: 'Validates globs of CODEOWNERS file and validates coverage of source folders'
+author: 'Rufat Khaslarov / Dzmitry Patsiahevich'
 inputs:
-  milliseconds: # change this
+  path:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'File Path to Code Owners file'
+    default: ./.github/CODEOWNERS
+  folders:
+    required: true
+    description: 'Folders that should be tracked'
+    default: |
+      src
 runs:
   using: 'node16'
   main: 'dist/index.js'
