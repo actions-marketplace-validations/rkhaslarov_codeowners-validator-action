@@ -90,8 +90,13 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const fs_1 = __nccwpck_require__(147);
+const fs_1 = __importDefault(__nccwpck_require__(147));
+const readline_1 = __importDefault(__nccwpck_require__(521));
+const fsAsync = fs_1.default.promises;
 function fillWithPath(structure, path) {
     const [, ...arrayPath] = path.split('/');
     return arrayPath.reduce((acc, folderName, idx) => {
@@ -109,8 +114,11 @@ function getOwnedFilePaths(codeOwnersFilePath) {
     return __awaiter(this, void 0, void 0, function* () {
         const ownersStructure = {};
         const ownedFileEndings = [];
-        const file = yield fs_1.promises.open(codeOwnersFilePath);
-        const readLinesStream = file.readLines();
+        const fileStream = fs_1.default.createReadStream(codeOwnersFilePath);
+        const readLinesStream = readline_1.default.createInterface({
+            input: fileStream,
+            crlfDelay: Infinity
+        });
         try {
             for (var _d = true, readLinesStream_1 = __asyncValues(readLinesStream), readLinesStream_1_1; readLinesStream_1_1 = yield readLinesStream_1.next(), _a = readLinesStream_1_1.done, !_a; _d = true) {
                 _c = readLinesStream_1_1.value;
@@ -143,7 +151,7 @@ function getOwnedFilePaths(codeOwnersFilePath) {
 }
 function deepScanDirectory(path) {
     return __awaiter(this, void 0, void 0, function* () {
-        const items = yield fs_1.promises.readdir(path, { withFileTypes: true });
+        const items = yield fsAsync.readdir(path, { withFileTypes: true });
         const dirItems = items.filter(item => item.isDirectory());
         const childItems = yield Promise.all(dirItems.map((dirItem) => __awaiter(this, void 0, void 0, function* () { return deepScanDirectory(`${path}/${dirItem.name}`); })));
         return [
@@ -164,7 +172,7 @@ function validateCodeOwners(codeOwnersFilePath, folders) {
             getOwnedFilePaths(codeOwnersFilePath),
             scanExistingFiles(folders)
         ]);
-        const unownedFiles = filePaths.filter(filePath => {
+        const unownedFiles = filePaths.filter((filePath) => {
             if (ownedFileEndings.some(fileEnding => fileEnding && filePath.endsWith(fileEnding))) {
                 return false;
             }
@@ -2949,6 +2957,14 @@ module.exports = require("os");
 
 "use strict";
 module.exports = require("path");
+
+/***/ }),
+
+/***/ 521:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("readline");
 
 /***/ }),
 
