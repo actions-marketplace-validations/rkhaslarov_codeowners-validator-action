@@ -1,6 +1,6 @@
 name: 'Code Owners Validator'
 description: 'Validates globs of CODEOWNERS file and validates coverage of source folders'
-author: 'Rufat Khaslarov / Dzmitry Patsiakevich'
+author: 'Rufat Khaslarov / Dzmitry Patsiahevich'
 inputs:
   path:
     required: true
@@ -9,7 +9,8 @@ inputs:
   folders:
     required: true
     description: 'Folders that should be tracked'
-    default: ./.github/CODEOWNERS
+    default: |
+      src
 runs:
   using: 'node16'
   main: 'dist/index.js'
