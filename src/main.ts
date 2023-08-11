@@ -10,12 +10,7 @@ async function run(): Promise<void> {
       .map(s => s.replace(/^!\s+/, '!').trim())
       .filter(x => x !== '')
 
-    core.info(codeOwnersFilePath)
-    core.info(foldersToTrack.toString())
     await validateCodeOwners(codeOwnersFilePath, foldersToTrack)
-    core.debug(new Date().toTimeString())
-
-    core.setOutput('Success', {})
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

@@ -1,10 +1,14 @@
-import * as core from '@actions/core'
 import * as fs from 'fs'
 import * as readline from 'readline'
 
 const fsAsync = fs.promises
 
 type Structure = Record<string, any>
+
+type OwnedFilePaths = {
+  ownedFileEndings: string[]
+  ownersStructure: Structure
+}
 
 function fillWithPath(structure: Structure, path: string): Structure {
   const [, ...arrayPath] = path.split('/')
@@ -22,10 +26,7 @@ function fillWithPath(structure: Structure, path: string): Structure {
   }, structure)
 }
 
-async function getOwnedFilePaths(codeOwnersFilePath: string): Promise<{
-  ownedFileEndings: string[]
-  ownersStructure: Structure
-}> {
+async function getOwnedFilePaths(codeOwnersFilePath: string): Promise<OwnedFilePaths> {
   const ownersStructure = {}
   const ownedFileEndings = []
 
@@ -82,14 +83,10 @@ async function validateCodeOwners(
   codeOwnersFilePath: string,
   folders: string[]
 ): Promise<void> {
-  const [{ownedFileEndings, ownersStructure}, filePaths] = await Promise.all([
+  const [{ownedFileEndings, ownersStructure}, filePaths]: [OwnedFilePaths, string[]] = await Promise.all([
     getOwnedFilePaths(codeOwnersFilePath),
     scanExistingFiles(folders)
   ])
-
-  core.info(JSON.stringify(ownedFileEndings))
-  core.info(JSON.stringify(ownersStructure))
-  core.info(filePaths.toString())
 
   const unownedFiles = filePaths.filter((filePath: string) => {
     if (
@@ -118,8 +115,6 @@ async function validateCodeOwners(
 
     return false
   })
-
-  core.info(unownedFiles.toString())
 
   if (unownedFiles.length) {
     throw new Error(

@@ -46,7 +46,6 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core = __importStar(__nccwpck_require__(186));
 const fs = __importStar(__nccwpck_require__(147));
 const readline = __importStar(__nccwpck_require__(521));
 const fsAsync = fs.promises;
@@ -125,9 +124,6 @@ function validateCodeOwners(codeOwnersFilePath, folders) {
             getOwnedFilePaths(codeOwnersFilePath),
             scanExistingFiles(folders)
         ]);
-        core.info(JSON.stringify(ownedFileEndings));
-        core.info(JSON.stringify(ownersStructure));
-        core.info(filePaths.toString());
         const unownedFiles = filePaths.filter((filePath) => {
             if (ownedFileEndings.some(fileEnding => fileEnding && filePath.endsWith(fileEnding))) {
                 return false;
@@ -147,7 +143,6 @@ function validateCodeOwners(codeOwnersFilePath, folders) {
             }
             return false;
         });
-        core.info(unownedFiles.toString());
         if (unownedFiles.length) {
             throw new Error(`The next folders do not have owners: ${unownedFiles.join('\n')}`);
         }
@@ -210,11 +205,7 @@ function run() {
                 .split('\n')
                 .map(s => s.replace(/^!\s+/, '!').trim())
                 .filter(x => x !== '');
-            core.info(codeOwnersFilePath);
-            core.info(foldersToTrack.toString());
             yield (0, validator_1.default)(codeOwnersFilePath, foldersToTrack);
-            core.debug(new Date().toTimeString());
-            core.setOutput('Success', {});
         }
         catch (error) {
             if (error instanceof Error)
