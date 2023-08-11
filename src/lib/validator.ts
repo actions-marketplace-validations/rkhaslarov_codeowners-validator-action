@@ -1,5 +1,6 @@
-import fs from 'fs'
-import readline from 'readline'
+import * as core from '@actions/core'
+import * as fs from 'fs'
+import * as readline from 'readline'
 
 const fsAsync = fs.promises
 
@@ -86,6 +87,10 @@ async function validateCodeOwners(
     scanExistingFiles(folders)
   ])
 
+  core.info(JSON.stringify(ownedFileEndings))
+  core.info(JSON.stringify(ownersStructure))
+  core.info(filePaths.toString())
+
   const unownedFiles = filePaths.filter((filePath: string) => {
     if (
       ownedFileEndings.some(
@@ -113,6 +118,8 @@ async function validateCodeOwners(
 
     return false
   })
+
+  core.info(unownedFiles.toString())
 
   if (unownedFiles.length) {
     throw new Error(
